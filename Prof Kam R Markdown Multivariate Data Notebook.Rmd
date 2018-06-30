@@ -1,0 +1,97 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+#2.0 Data Preparation
+
+##2.1 Installing and Launching R Packages
+```{r, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+packages = c('ggtern', 'plotly', 'tidyverse')
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+  }
+  library(p, character.only = T)
+}
+```
+##2.2 Importing the Data
+
+```{r}
+agegroup = read_csv("data/AgeGroup2015.csv")
+```
+
+##2.3 Preparing the Data
+
+```{r}
+#Deriving the young, economic active and old measures. with replacing of NA with 0 to avoid premature termination of summing.
+
+agpop_mutated <- agegroup %>%
+  replace(is.na(.), 0) %>%
+  mutate(YOUNG = rowSums(.[5:9])) %>%
+  mutate(ACTIVE = rowSums(.[10:17])) %>%
+  mutate(OLD = rowSums(.[18:22]))
+```
+
+#3.0 Visualising and Analysing Three Continuous Variables
+
+##3.1 Creating a Ternary Plot
+```{r}
+#Building the static ternary plot
+ggtern(data = agpop_mutated, aes(x=YOUNG, y=ACTIVE, z=OLD)) + geom_point()
+```
+
+##3.1.1 Customising the Ternary Plot
+```{r}
+#Building the static ternary plot
+ggtern(data = agpop_mutated, aes(x=YOUNG, y=ACTIVE, z=OLD)) + geom_point() + labs(title = "Population Structure, 2015") + theme_rgbw()
+```
+
+##3.2 Creating an Interactive Ternary Plot
+```{r}
+#Reusable function for creating annotation objects
+label = function(txt){
+  list(
+    text = txt,
+    x = 0.1, y =1,
+    ax = 0, ay = 0,
+    xref = "paper", yref = "paper",
+    align = "center",
+    font = list(family = "serif", size = 15, color = "white"),
+    bgcolor = "#b3b3b3", bordercolor = "black", borderwidth = 2
+  )
+}
+
+#Reusable function for axis formatting
+axis = function(txt){
+  list(
+    title = txt,
+    tickformat = ".0%",
+    tickfont = list(size = 10)
+  )
+}
+
+ternaryAxes = list(
+  aaxis = axis("Young"),
+  baxis = axis("Active"),
+  caxis = axis("Old")
+)
+
+#Initiating a plotly visualisation
+plot_ly(
+  agpop_mutated,
+  a = ~YOUNG,
+  b = ~ACTIVE,
+  c = ~OLD,
+  color = I("black"),
+  type = "scatterternary"
+) %>%
+  layout(
+    annotations = label("Ternary Markers"),
+    ternary = ternaryAxes
+  )
+
+```
+
